@@ -1,0 +1,256 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>EstateIQ | House Price Predictor</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+    <header class="topbar">
+        <a href="/" class="brand">
+            <span class="brand-icon">E</span>
+            <span>Estate<span class="accent">IQ</span></span>
+        </a>
+
+        <div class="model-badge">
+            <span class="status-dot"></span>
+            Decision Tree Regressor
+        </div>
+    </header>
+
+    <main class="container">
+
+        <section class="hero">
+            <p class="eyebrow">SMART PROPERTY ESTIMATION</p>
+            <h1>Find your home's <span class="accent">estimated value.</span></h1>
+            <p class="hero-description">
+                Enter a few property details to estimate its price
+                using a machine learning model.
+            </p>
+        </section>
+
+        <section class="dashboard">
+
+            <!-- INPUT PANEL -->
+            <div class="panel input-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">PROPERTY DETAILS</p>
+                        <h2>Configure your property</h2>
+                    </div>
+                    <span class="step-number">01</span>
+                </div>
+
+                <form method="POST" action="/" class="property-form">
+
+                    <div class="field">
+                        <label for="size">House size</label>
+
+                        <div class="input-with-unit">
+                            <input
+                                type="number"
+                                id="size"
+                                name="size"
+                                min="100"
+                                max="20000"
+                                step="1"
+                                value="{{ house.size if house else request.form.get('size', '1500') }}"
+                                required
+                            >
+                            <span>sqft</span>
+                        </div>
+
+                        <p class="field-help">
+                            Total built-up area in square feet
+                        </p>
+                    </div>
+
+                    <div class="field">
+                        <label for="bedrooms">Number of bedrooms</label>
+
+                        <select id="bedrooms"
+                                name="bedrooms"
+                                required>
+                            {% for n in range(1, 11) %}
+                            <option value="{{ n }}"
+                                {% if house and house.bedrooms == n %}
+                                    selected
+                                {% elif not house and request.form.get('bedrooms', '3')|int == n %}
+                                    selected
+                                {% endif %}>
+                                {{ n }} {{ 'bedroom' if n == 1 else 'bedrooms' }}
+                            </option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="field">
+                        <label for="age">Property age</label>
+
+                        <div class="input-with-unit">
+                            <input
+                                type="number"
+                                id="age"
+                                name="age"
+                                min="0"
+                                max="200"
+                                step="1"
+                                value="{{ house.age if house else request.form.get('age', '5') }}"
+                                required
+                            >
+                            <span>years</span>
+                        </div>
+
+                        <p class="field-help">
+                            Approximate age of the property
+                        </p>
+                    </div>
+
+                    {% if error %}
+                    <div class="error-message" role="alert">
+                        {{ error }}
+                    </div>
+                    {% endif %}
+
+                    <button type="submit" class="predict-button">
+                        Predict house price
+                        <span aria-hidden="true">→</span>
+                    </button>
+
+                    <p class="privacy-note">
+                        <span>●</span>
+                        Prediction runs on your local Python application.
+                    </p>
+                </form>
+            </div>
+
+            <!-- RESULT PANEL -->
+            <div class="panel result-panel">
+                <div class="panel-heading">
+                    <div>
+                        <p class="eyebrow">PREDICTION RESULT</p>
+                        <h2>Your estimated value</h2>
+                    </div>
+                    <span class="step-number">02</span>
+                </div>
+
+                {% if prediction is not none %}
+                <div class="result-content">
+                    <p class="result-label">Estimated house price</p>
+
+                    <div class="price">
+                        <span class="currency">₹</span>
+                        {{ "%.2f"|format(prediction) }}
+                        <span class="price-unit">lakhs</span>
+                    </div>
+
+                    <p class="result-caption">
+                        Generated by the trained Decision Tree model.
+                    </p>
+
+                    <div class="summary">
+                        <div>
+                            <span>House size</span>
+                            <strong>{{ house.size|int }} sqft</strong>
+                        </div>
+
+                        <div>
+                            <span>Bedrooms</span>
+                            <strong>{{ house.bedrooms }}</strong>
+                        </div>
+
+                        <div>
+                            <span>Property age</span>
+                            <strong>{{ house.age|int }} years</strong>
+                        </div>
+                    </div>
+                </div>
+
+                {% else %}
+                <div class="empty-result">
+                    <div class="house-icon">⌂</div>
+                    <h3>Your estimate will appear here</h3>
+                    <p>
+                        Enter the property details and select
+                        <strong>Predict house price</strong> to get started.
+                    </p>
+                </div>
+                {% endif %}
+
+                <div class="result-disclaimer">
+                    <strong>Note:</strong>
+                    This is a machine learning estimate, not an official
+                    property valuation or guaranteed market price.
+                </div>
+            </div>
+        </section>
+
+        <!-- MODEL PERFORMANCE -->
+        <section class="panel performance-panel">
+            <div class="panel-heading">
+                <div>
+                    <p class="eyebrow">MODEL INFORMATION</p>
+                    <h2>Training & evaluation</h2>
+                </div>
+                <span class="step-number">03</span>
+            </div>
+
+            <div class="metrics-grid">
+                <div class="metric-card">
+                    <span>Total records</span>
+                    <strong>{{ metrics.total_records }}</strong>
+                    <small>Valid dataset rows</small>
+                </div>
+
+                <div class="metric-card">
+                    <span>Training records</span>
+                    <strong>{{ metrics.train_records }}</strong>
+                    <small>Used to train the model</small>
+                </div>
+
+                <div class="metric-card">
+                    <span>Testing records</span>
+                    <strong>{{ metrics.test_records }}</strong>
+                    <small>Held out for evaluation</small>
+                </div>
+
+                <div class="metric-card">
+                    <span>MAE</span>
+                    <strong>{{ "%.2f"|format(metrics.mae) }}</strong>
+                    <small>Average absolute error (lakhs)</small>
+                </div>
+
+                <div class="metric-card">
+                    <span>RMSE</span>
+                    <strong>{{ "%.2f"|format(metrics.rmse) }}</strong>
+                    <small>Root mean squared error (lakhs)</small>
+                </div>
+
+                <div class="metric-card">
+                    <span>R² score</span>
+                    <strong>{{ "%.3f"|format(metrics.r2) }}</strong>
+                    <small>Test-set model fit</small>
+                </div>
+            </div>
+
+            <p class="metrics-note">
+                Evaluation metrics are calculated on the held-out test set.
+                They may be unreliable if the dataset is small or
+                unrepresentative.
+            </p>
+        </section>
+
+    </main>
+
+    <footer class="footer">
+        EstateIQ · House Price Prediction
+        <span>Built with Python, Flask and scikit-learn</span>
+    </footer>
+</body>
+</html>
